@@ -1,4 +1,4 @@
-import 'package:chat_app/home_page.dart';
+import 'package:chat_app/sevices/auth.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -18,40 +18,30 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           children: [
             SizedBox(height: 70),
-            Container(
-              child: Image.network(
-                "https://static.vecteezy.com/system/resources/previews/010/549/829/non_2x/girl-texting-on-phone-messaging-chatting-with-friend-online-looking-at-smart-phone-typing-online-conversation-and-communication-concept-illustration-free-vector.jpg",
-              ),
-            ),
+            Container(child: Image.asset("images/chat1.jpg")),
             SizedBox(height: 20),
             Text(
               textAlign: TextAlign.center,
               "Stay Connected, Anytime, Anywhere",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 15),
             Text(
               textAlign: TextAlign.center,
               "Chat instantly with friends and family, share moments, and build conversations that matter — all in one place",
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
             ),
             SizedBox(height: 50),
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (contex) {
-                      return HomePage();
-                    },
-                  ),
-                );
+                AuthMethods().signInWithGoogle(context);
               },
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.amber,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                height: 48,
+                height: 58,
 
                 width: MediaQuery.of(context).size.width,
                 child: Row(
