@@ -1,13 +1,85 @@
+import 'package:Sai_chat_app/sevices/database.dart';
+import 'package:Sai_chat_app/sevices/shared_preferences.dart';
+// import 'package:chat_app/sevices/database.dart';
+// import 'package:chat_app/sevices/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  String name, imageUrl, userName;
+  ChatPage({
+    required this.userName,
+    required this.imageUrl,
+    required this.name,
+    super.key,
+  });
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
+  TextEditingController messageController = TextEditingController();
+  String? myUser, myname, myprofile, chatRoomId, messageId;
+
+  Future<void> loadUserData() async {
+    myUser = await addSharedPreferences().getUserUserName();
+    myname = await addSharedPreferences().getUserName();
+    myprofile = await addSharedPreferences().getUserImage();
+    chatRoomId = getChatRoomIdByUsername(widget.name, myUser!);
+
+    setState(() {
+      // userName = name;
+      print(" raju:$myUser");
+      print(" raju1:$myprofile");
+    });
+  }
+
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadUserData();
+    setState(() {});
+  }
+
+  getChatRoomIdByUsername(String a, String b) {
+    if (a.substring(0, 1).codeUnitAt(0) > b.substring(0, 1).codeUnitAt(0)) {
+      return "$a\_$b";
+    } else {
+      return "$b\_$a";
+    }
+  }
+
+  addMessage(bool isClicked) {
+    if (messageController.text != "") {
+      String message = messageController.text;
+      messageController.text = "";
+      DateTime now = DateTime.now();
+      String formattedDate = DateFormat("h:mma").format(now);
+      Map<String, dynamic> messageInfo = {
+        "message": message,
+        "sendBy": myUser,
+        "ts": formattedDate,
+        "time": FieldValue.serverTimestamp(),
+        "imageUrl": myprofile,
+      };
+      messageId = randomAlphaNumeric(10);
+      databaseMethods().addMessage(chatRoomId!, messageId!, messageInfo).then((
+        value,
+      ) {
+        Map<String, dynamic> lastMessageInfo = {
+          "lastMessage": message,
+          "lastMessagets": formattedDate,
+          "lastMessageTime": FieldValue.serverTimestamp(),
+          "lastMessageSendBy": myUser,
+        };
+        databaseMethods().lastMessage(chatRoomId!, lastMessageInfo);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

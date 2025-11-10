@@ -17,4 +17,35 @@ class databaseMethods {
       return null;
     }
   }
+
+  Future addMessage(
+    String chatRoomId,
+    String messageId,
+    Map<String, dynamic> messageInfo,
+  ) async {
+    return await _firestore
+        .collection("ChatRooms")
+        .doc(chatRoomId)
+        .collection("chats")
+        .doc(messageId)
+        .set(messageInfo);
+  }
+
+  Future lastMessage(
+    String chatRoomId,
+
+    Map<String, dynamic> lastMessageInfo,
+  ) async {
+    return await _firestore
+        .collection("ChatRooms")
+        .doc(chatRoomId)
+        .update(lastMessageInfo);
+  }
+
+  Future<QuerySnapshot> search(String userName) {
+    return _firestore
+        .collection("users")
+        .where("searchKey", isEqualTo: userName.substring(0, 1).toUpperCase())
+        .get();
+  }
 }

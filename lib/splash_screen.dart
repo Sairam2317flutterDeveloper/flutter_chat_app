@@ -1,5 +1,7 @@
-import 'package:chat_app/sevices/auth.dart';
+import 'package:Sai_chat_app/sevices/auth.dart';
+// import 'package:chat_app/sevices/auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,13 +25,19 @@ class _SplashScreenState extends State<SplashScreen> {
             Text(
               textAlign: TextAlign.center,
               "Stay Connected, Anytime, Anywhere",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 15),
             Text(
               textAlign: TextAlign.center,
               "Chat instantly with friends and family, share moments, and build conversations that matter — all in one place",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+              style: GoogleFonts.lato(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
             ),
             SizedBox(height: 50),
             GestureDetector(
@@ -46,23 +54,22 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: MediaQuery.of(context).size.width,
                 child: Row(
                   children: [
+                    SizedBox(width: 30),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.amber,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       // color: Colors.amber,
-                      child: Image.network(
-                        "https://i.pinimg.com/originals/68/3d/9a/683d9a1a8150ee8b29bfd25d46804605.png",
-                      ),
+                      child: Image.asset("images/google.png"),
                     ),
-                    SizedBox(width: 40),
+                    SizedBox(width: 20),
                     Text(
                       textAlign: TextAlign.center,
                       "Login With Google",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],

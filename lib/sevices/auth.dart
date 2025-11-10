@@ -1,10 +1,12 @@
-import 'package:chat_app/home_page.dart';
-import 'package:chat_app/sevices/database.dart';
-import 'package:chat_app/sevices/shared_preferences.dart';
+import 'package:Sai_chat_app/home_page.dart';
+import 'package:Sai_chat_app/sevices/database.dart';
+import 'package:Sai_chat_app/sevices/shared_preferences.dart';
+// import 'package:chat_app/home_page.dart';
+// import 'package:chat_app/sevices/database.dart';
+// import 'package:chat_app/sevices/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthMethods {
   final FirebaseAuth auth = FirebaseAuth.instance;
@@ -35,7 +37,7 @@ class AuthMethods {
 
       if (userDetails != null) {
         String username = userDetails.email!.replaceAll("@gmail.com", "");
-        String firstLetter = username.substring(0, 2).toLowerCase();
+        String firstLetter = username.substring(0, 1).toUpperCase();
 
         // Save in SharedPreferences
         await addSharedPreferences().saveUserName(

@@ -1,4 +1,5 @@
-import 'package:chat_app/splash_screen.dart';
+// import 'package:chat_app/splash_screen.dart';
+import 'package:Sai_chat_app/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
