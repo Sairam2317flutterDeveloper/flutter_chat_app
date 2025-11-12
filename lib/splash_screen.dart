@@ -66,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     SizedBox(width: 20),
                     Text(
                       textAlign: TextAlign.center,
-                      "Login With Google",
+                      "Login With Google chat app",
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
