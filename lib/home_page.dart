@@ -1,4 +1,5 @@
 import 'package:Sai_chat_app/chat_page.dart';
+import 'package:Sai_chat_app/profile.dart';
 import 'package:Sai_chat_app/sevices/database.dart';
 import 'package:Sai_chat_app/sevices/shared_preferences.dart';
 // import 'package:chat_app/chat_page.dart';
@@ -162,9 +163,19 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     Spacer(),
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundImage: NetworkImage(myprofile.toString()),
+                    GestureDetector(
+                      onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Profile(),
+      ),
+    );
+  },
+                      child: CircleAvatar(
+                        radius: 25,
+                        backgroundImage: NetworkImage(myprofile.toString()),
+                      ),
                     ),
                   ],
                 ),

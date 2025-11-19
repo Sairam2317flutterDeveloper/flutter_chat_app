@@ -81,10 +81,61 @@ class AuthMethods {
         );
       }
     } catch (e) {
-      print("Error: $e");
+      print("Error  sairam: $e");
       ScaffoldMessenger.of(context).showSnackBar(
+        
         SnackBar(backgroundColor: Colors.red, content: Text("Error: $e")),
       );
     }
   }
+
+  Future signOut() async{
+    await auth.signOut();
+
+  }
+  Future deleteAccount() async{
+    User?user=auth.currentUser;
+    user?.delete();
+
+  }
+  Future<void> deleteAccount1() async {
+  try {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      throw Exception("No user found");
+    }
+
+    // Re-authenticate based on provider
+    for (final provider in user.providerData) {
+      if (provider.providerId == 'password') {
+        // Email/Password users MUST re-login → show dialog or ask password
+        throw FirebaseAuthException(
+            code: "requires-recent-login",
+            message: "Please re-login before deleting account.");
+      }
+
+      if (provider.providerId == 'google.com') {
+        // 🔥 Re-authenticate Google user
+        final googleUser = await GoogleSignIn().signIn();
+        final googleAuth = await googleUser!.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        await user.reauthenticateWithCredential(credential);
+      }
+    }
+
+    // 🔥 Delete account safely
+    await user.delete();
+
+  } catch (e) {
+    print("Delete Error: $e");
+    rethrow; // send back to UI
+  }
+}
+
 }
