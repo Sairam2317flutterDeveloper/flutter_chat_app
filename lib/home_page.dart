@@ -1,3 +1,4 @@
+// import 'package:Sai_chat_app/chatRoomLIte.dart';
 import 'package:Sai_chat_app/chat_page.dart';
 import 'package:Sai_chat_app/profile.dart';
 import 'package:Sai_chat_app/sevices/database.dart';
@@ -17,18 +18,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String? myUser, myname, myprofile;
+  Stream? chatRoomstreams;
+  String? myUser, myname, myprofile, myemail;
+  String? guestName = "", gusetProfile = "", guestId = "", guestUserName = "";
   TextEditingController searchController = TextEditingController();
   bool isSearch = false;
   var querySearchList = [];
   var temSearchStore = [];
+  String getChatRoomIdByUsername(String a, String b) {
+    a = a.toLowerCase().trim();
+    b = b.toLowerCase().trim();
+
+    if (a.compareTo(b) > 0) {
+      return "${b}_$a";
+    } else {
+      return "${a}_$b";
+    }
+  }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    loadUserData();
-    // loadInitialUsers();
+    // print("Guest"$):
+    onTheLoad();
+    // loadUserData();
+
     setState(() {});
   }
 
@@ -127,8 +142,9 @@ class _HomePageState extends State<HomePage> {
   // }
 
   Future<void> loadUserData() async {
-    myUser = await addSharedPreferences().getUserName();
+    myUser = await addSharedPreferences().getUserUserName();
     myname = await addSharedPreferences().getUserName();
+    myemail = await addSharedPreferences().getUserEmail();
     myprofile = await addSharedPreferences().getUserImage();
 
     setState(() {
@@ -136,6 +152,35 @@ class _HomePageState extends State<HomePage> {
       print(" raju:$myUser");
       print(" raju1:$myprofile");
     });
+  }
+
+  onTheLoad() async {
+    await loadUserData();
+    chatRoomstreams = await databaseMethods().getChatrooms();
+    setState(() {});
+  }
+
+  Widget chatRoomList() {
+    return StreamBuilder(
+      stream: chatRoomstreams,
+      builder: (context, AsyncSnapshot snapshot) {
+        return snapshot.hasData
+            ? ListView.builder(
+                padding: EdgeInsets.all(0),
+                itemCount: snapshot.data.docs.length,
+                itemBuilder: (context, index) {
+                  DocumentSnapshot ds = snapshot.data.docs[index];
+                  return Chatroomlite(
+                    chatRoomId: ds.id,
+                    lastMessage: ds["lastMessage"],
+                    myUserName: myUser!,
+                    // time: ds["lastMessagets"],
+                  );
+                },
+              )
+            : Container();
+      },
+    );
   }
 
   @override
@@ -165,13 +210,11 @@ class _HomePageState extends State<HomePage> {
                     Spacer(),
                     GestureDetector(
                       onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Profile(),
-      ),
-    );
-  },
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => Profile()),
+                        );
+                      },
                       child: CircleAvatar(
                         radius: 25,
                         backgroundImage: NetworkImage(myprofile.toString()),
@@ -253,19 +296,35 @@ class _HomePageState extends State<HomePage> {
                               itemBuilder: (context, index) {
                                 var data = temSearchStore[index];
                                 return GestureDetector(
-                                  onTap: () {
+                                  onTap: () async {
+                                    isSearch = false;
+
+                                    var chatRoomId = getChatRoomIdByUsername(
+                                      myUser!,
+                                      data["username"],
+                                    );
+                                    Map<String, dynamic> chatInfoMap = {
+                                      "users": [myUser, data["username"]],
+                                    };
+                                    await databaseMethods().createChatRoom(
+                                      chatRoomId,
+                                      chatInfoMap,
+                                    );
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => ChatPage(
-                                          userName: "",
-                                          imageUrl: "",
-                                          name: "",
+                                          userName: data["username"],
+                                          imageUrl: data["image"],
+                                          name: data["Name"],
+                                          uid: data["id"],
                                         ),
                                       ),
                                     );
                                     searchController.text = "";
-                                    isSearch = false;
+
+                                    // isSearch = false;
                                   },
                                   child: Card(
                                     borderOnForeground: true,
@@ -282,7 +341,7 @@ class _HomePageState extends State<HomePage> {
                                       ),
 
                                       title: Text(
-                                        data['Name'],
+                                        data['username'],
                                         style: GoogleFonts.spaceGrotesk(
                                           fontSize: 16,
                                           color: Colors.black,
@@ -295,99 +354,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             )
-                          : GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ChatPage(
-                                      userName: "",
-                                      imageUrl: "",
-                                      name: "",
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Material(
-                                borderRadius: BorderRadius.circular(7),
-                                elevation: 5,
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      245,
-                                      244,
-                                      244,
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // CircleAvatar(
-                                      //   radius: 50,
-                                      //   child: Image(
-                                      //     fit: BoxFit.cover,
-                                      //     image: NetworkImage(
-                                      //       "https://tse2.mm.bing.net/th/id/OIP.c5a3PU0Qkq6WT7y5bwvI8AHaKl?rs=1&pid=ImgDetMain&o=7&rm=3",
-                                      //     ),
-                                      //   ),
-                                      // ),
-                                      SizedBox(width: 5),
-                                      ClipRRect(
-                                        child: Image(
-                                          height: 80,
-
-                                          fit: BoxFit.cover,
-                                          image: NetworkImage(
-                                            "https://tse2.mm.bing.net/th/id/OIP.c5a3PU0Qkq6WT7y5bwvI8AHaKl?rs=1&pid=ImgDetMain&o=7&rm=3",
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            textAlign: TextAlign.center,
-                                            "SaiRam Raju",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          Text(
-                                            textAlign: TextAlign.center,
-                                            "Hi Raju How are You",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.normal,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Spacer(),
-                                      Text(
-                                        textAlign: TextAlign.center,
-                                        "02:00 PM",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      SizedBox(width: 4),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                          : Expanded(child: chatRoomList()),
                     ],
                   ),
                 ),
@@ -399,7 +366,91 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget buuldResults(data) {
+  // Widget buuldResults(data) {
+  //   return Container(
+  //     padding: EdgeInsets.all(8),
+
+  //     child: Container(
+  //       padding: EdgeInsets.all(10),
+  //       decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+  //       child: Row(
+  //         children: [
+  //           ClipRRect(
+  //             borderRadius: BorderRadius.circular(60),
+  //             child: Image.network(
+  //               data["image"],
+  //               height: 70,
+  //               width: 70,
+  //               fit: BoxFit.cover,
+  //             ),
+  //           ),
+  //           SizedBox(width: 20),
+  //           Column(
+  //             children: [
+  //               Text(
+  //                 data["Name"],
+  //                 style: TextStyle(
+  //                   fontSize: 20,
+  //                   fontWeight: FontWeight.bold,
+  //                   color: Colors.black12,
+  //                 ),
+  //               ),
+  //               Text(
+  //                 data["username"],
+  //                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  //               ),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+}
+
+class Chatroomlite extends StatefulWidget {
+  String lastMessage, chatRoomId, myUserName;
+  Chatroomlite({
+    super.key,
+    required this.chatRoomId,
+    required this.lastMessage,
+    required this.myUserName,
+    // required this.time,
+  });
+
+  @override
+  State<Chatroomlite> createState() => _ChatroomliteState();
+}
+
+class _ChatroomliteState extends State<Chatroomlite> {
+  String? guestName, gusetProfile, guestId, guestUserName;
+  getUserInfo() async {
+    guestUserName = widget.chatRoomId
+        .replaceAll("_", "")
+        .replaceAll(widget.myUserName, "");
+    QuerySnapshot querySnapshot = await databaseMethods().getUserInfo(
+      guestUserName!,
+    );
+    if (!mounted) return;
+    guestName = "${querySnapshot.docs[0]["Name"]}";
+    gusetProfile = "${querySnapshot.docs[0]["image"]}";
+    guestId = "${querySnapshot.docs[0]["id"]}";
+    guestUserName = "${querySnapshot.docs[0]["username"]}";
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    getUserInfo();
+    print("guestname:$guestName");
+    print("guestuser:$guestUserName");
+    print("guestprofile:$gusetProfile");
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(8),
 
@@ -408,29 +459,24 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(60),
-              child: Image.network(
-                data["image"],
-                height: 70,
-                width: 70,
-                fit: BoxFit.cover,
-              ),
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: NetworkImage(gusetProfile.toString()),
             ),
             SizedBox(width: 20),
             Column(
               children: [
                 Text(
-                  data["Name"],
+                  guestUserName.toString(),
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black12,
+                    color: Colors.black,
                   ),
                 ),
                 Text(
-                  data["username"],
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  widget.lastMessage,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
                 ),
               ],
             ),
