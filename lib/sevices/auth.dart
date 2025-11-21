@@ -1,6 +1,7 @@
 import 'package:Sai_chat_app/home_page.dart';
 import 'package:Sai_chat_app/sevices/database.dart';
 import 'package:Sai_chat_app/sevices/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:chat_app/home_page.dart';
 // import 'package:chat_app/sevices/database.dart';
 // import 'package:chat_app/sevices/shared_preferences.dart';
@@ -19,6 +20,7 @@ class AuthMethods {
       final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
       final GoogleSignIn googleSignIn = GoogleSignIn();
 
+      // Google Sign-In Popup
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
@@ -30,61 +32,122 @@ class AuthMethods {
         accessToken: googleAuth.accessToken,
       );
 
-      UserCredential results = await firebaseAuth.signInWithCredential(
+      // Firebase login
+      UserCredential result = await firebaseAuth.signInWithCredential(
         credential,
       );
-      User? userDetails = results.user;
+      User? user = result.user;
+      print("CURRENT USER UID = ${user!.uid}");
 
-      if (userDetails != null) {
-        String username = userDetails.email!.replaceAll("@gmail.com", "");
-        String firstLetter = username.substring(0, 1).toUpperCase();
+      if (user == null) return;
 
-        // Save in SharedPreferences
-        await addSharedPreferences().saveUserName(
-          userDetails.displayName ?? "Guest",
-        );
-        await addSharedPreferences().saveUserEmail(userDetails.email ?? "");
-        await addSharedPreferences().saveUserId(userDetails.uid);
-        await addSharedPreferences().saveUserImage(userDetails.photoURL ?? "");
-        await addSharedPreferences().saveUserUserNmae(username);
+      // Username (remove @gmail.com)
+      String username = user.email!.split("@").first.toUpperCase();
 
-        Map<String, dynamic> userInfoMap = {
-          "Name": userDetails.displayName ?? "Guest",
-          "Email": userDetails.email,
-          "image": userDetails.photoURL ?? "",
-          "id": userDetails.uid,
-          "username": username.toUpperCase(),
-          "searchKey": firstLetter,
-        };
+      // Search key
+      String searchKey = username.substring(0, 1);
 
-        // ✅ Check if user already exists in Firestore
-        final db = databaseMethods();
-        final existingUser = await db.getUserById(userDetails.uid);
+      // Save local data
+      await addSharedPreferences().saveUserName(user.displayName ?? "Guest");
+      await addSharedPreferences().saveUserEmail(user.email ?? "");
+      await addSharedPreferences().saveUserId(user.uid);
+      await addSharedPreferences().saveUserImage(user.photoURL ?? "");
+      await addSharedPreferences().saveUserUserNmae(username);
 
-        if (existingUser == null || !existingUser.exists) {
-          await db.addUser(userInfoMap, userDetails.uid);
-        }
+      // Firestore user data
+      Map<String, dynamic> userInfoMap = {
+        "id": user.uid,
+        "Name": user.displayName ?? "Guest",
+        "Email": user.email,
+        "image": user.photoURL ?? "",
+        "username": username,
+        "searchKey": searchKey,
+      };
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.green,
-            content: Text(
-              "Welcome ${userDetails.displayName ?? username}!",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
+      // 🔥 Check if user already exists in Firestore
+      final DocumentSnapshot existingUser = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+      if (!existingUser.exists) {
+        // 🔥 Create user only first time
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .set(userInfoMap);
       }
+
+      // Success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+            "Welcome ${user.displayName ?? username}!",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+
+      // Go to home page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
     } catch (e) {
-      print("Error: $e");
+      print("Error sairam: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(backgroundColor: Colors.red, content: Text("Error: $e")),
       );
+    }
+  }
+
+  Future signOut() async {
+    await auth.signOut();
+  }
+
+  Future deleteAccount() async {
+    User? user = auth.currentUser;
+    user?.delete();
+  }
+
+  Future<void> deleteAccount1() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception("No user found");
+      }
+
+      // Re-authenticate based on provider
+      for (final provider in user.providerData) {
+        if (provider.providerId == 'password') {
+          // Email/Password users MUST re-login → show dialog or ask password
+          throw FirebaseAuthException(
+            code: "requires-recent-login",
+            message: "Please re-login before deleting account.",
+          );
+        }
+
+        if (provider.providerId == 'google.com') {
+          // 🔥 Re-authenticate Google user
+          final googleUser = await GoogleSignIn().signIn();
+          final googleAuth = await googleUser!.authentication;
+
+          final credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
+
+          await user.reauthenticateWithCredential(credential);
+        }
+      }
+
+      // 🔥 Delete account safely
+      await user.delete();
+    } catch (e) {
+      print("Delete Error: $e");
+      rethrow; // send back to UI
     }
   }
 }

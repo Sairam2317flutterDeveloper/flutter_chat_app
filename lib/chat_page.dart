@@ -4,15 +4,17 @@ import 'package:Sai_chat_app/sevices/shared_preferences.dart';
 // import 'package:chat_app/sevices/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
-  String name, imageUrl, userName;
+  String name, imageUrl, userName, uid;
   ChatPage({
     required this.userName,
     required this.imageUrl,
     required this.name,
+    required this.uid,
     super.key,
   });
 
@@ -22,33 +24,49 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   TextEditingController messageController = TextEditingController();
-  String? myUser, myname, myprofile, chatRoomId, messageId;
+  String? myUser, myname, myprofile, chatRoomId, messageId, myUId;
+  Stream? messageStrem;
 
   Future<void> loadUserData() async {
     myUser = await addSharedPreferences().getUserUserName();
     myname = await addSharedPreferences().getUserName();
     myprofile = await addSharedPreferences().getUserImage();
-    chatRoomId = getChatRoomIdByUsername(widget.name, myUser!);
+    myUId = await addSharedPreferences().getUserId();
+    chatRoomId = getChatRoomIdByUsername(widget.userName, myUser!);
 
     setState(() {
       // userName = name;
-      print(" raju:$myUser");
-      print(" raju1:$myprofile");
+      print(" raju:${widget.userName}");
+      print(" raju1:$myUser");
+      print(" raju3:$chatRoomId");
     });
   }
+
+  onload() {}
 
   void initState() {
     // TODO: implement initState
     super.initState();
-    loadUserData();
+    loadDataAndStartStream();
+    setState(() {
+      print(" raju4: ${widget.userName}");
+    });
+  }
+
+  void loadDataAndStartStream() async {
+    await loadUserData(); // chatRoomId is ready
+    messageStrem = databaseMethods().getChatroommMessages(chatRoomId!);
     setState(() {});
   }
 
-  getChatRoomIdByUsername(String a, String b) {
-    if (a.substring(0, 1).codeUnitAt(0) > b.substring(0, 1).codeUnitAt(0)) {
-      return "$a\_$b";
+  String getChatRoomIdByUsername(String a, String b) {
+    a = a.toLowerCase().trim();
+    b = b.toLowerCase().trim();
+
+    if (a.compareTo(b) > 0) {
+      return "${b}_$a";
     } else {
-      return "$b\_$a";
+      return "${a}_$b";
     }
   }
 
@@ -76,40 +94,91 @@ class _ChatPageState extends State<ChatPage> {
           "lastMessageSendBy": myUser,
         };
         databaseMethods().lastMessage(chatRoomId!, lastMessageInfo);
+        if (isClicked) {
+          message = "";
+        }
       });
     }
+  }
+
+  getAndSetMessage() async {
+    messageStrem = await databaseMethods().getChatroommMessages(chatRoomId);
+    setState(() {});
+  }
+
+  Widget chatMessageType(String message, bool sendByMe) {
+    return Row(
+      mainAxisAlignment: sendByMe
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      children: [
+        Flexible(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            margin: EdgeInsets.symmetric(vertical: 16, horizontal: 5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomRight: sendByMe
+                    ? Radius.circular(0)
+                    : Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomLeft: sendByMe ? Radius.circular(20) : Radius.circular(0),
+              ),
+              color: sendByMe ? Colors.grey : Colors.blue,
+            ),
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget chatMessage() {
+    return StreamBuilder(
+      stream: messageStrem,
+      builder: (context, AsyncSnapshot snapshot) {
+        return snapshot.hasData
+            ? ListView.builder(
+                itemCount: snapshot.data.docs.length,
+
+                reverse: true,
+                itemBuilder: (context, index) {
+                  print("Stream snapshot: ${snapshot.data}");
+                  DocumentSnapshot ds = snapshot.data.docs[index];
+                  return chatMessageType(ds["message"], myUser == ds["sendBy"]);
+                },
+              )
+            : Container();
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.teal,
+        centerTitle: true,
+        title: Text(
+          widget.name,
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: Container(
         color: Colors.teal,
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsetsGeometry.only(left: 1, top: 20),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                  SizedBox(width: 70),
-                  Text(
-                    textAlign: TextAlign.center,
-                    "  Sairam",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             SizedBox(height: 30),
             Expanded(
               child: Container(
@@ -130,55 +199,12 @@ class _ChatPageState extends State<ChatPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.teal,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                              bottomRight: Radius.circular(20),
-                            ),
-                          ),
-                          child: Text(
-                            "Hey how are you ",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Container(
+                      // color: Colors.red,
+                      height: MediaQuery.of(context).size.height / 1.37,
+                      child: chatMessage(),
                     ),
-                    SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.blueGrey,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                              bottomLeft: Radius.circular(20),
-                            ),
-                          ),
-                          child: Text(
-                            "Hi im fine",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Spacer(),
+                    SizedBox(height: 30),
                     Row(
                       children: [
                         Container(
@@ -198,7 +224,9 @@ class _ChatPageState extends State<ChatPage> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: TextFormField(
-                              // textAlign: TextAlign.center,
+                              // textAlign: TextAlign.cente
+                              // r,
+                              controller: messageController,
                               decoration: InputDecoration(
                                 contentPadding: EdgeInsets.all(5),
                                 hintText: "Send a message...",
@@ -209,13 +237,18 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
                         SizedBox(width: 5),
-                        Container(
-                          padding: EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: Colors.teal,
-                            borderRadius: BorderRadius.circular(30),
+                        GestureDetector(
+                          onTap: () {
+                            addMessage(true);
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: Colors.teal,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Icon(Icons.send, color: Colors.white),
                           ),
-                          child: Icon(Icons.send, color: Colors.white),
                         ),
                       ],
                     ),
